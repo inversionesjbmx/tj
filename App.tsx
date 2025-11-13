@@ -509,6 +509,22 @@ const App: React.FC = () => {
       });
   };
   
+  const handleDeleteAllData = () => {
+    setTrades([]);
+    setAudits([]);
+    setStrategies([]);
+    setInitialCapital(0);
+    setActiveStrategyId(null);
+    localStorage.removeItem('cryptoTrades');
+    localStorage.removeItem('cryptoAudits');
+    localStorage.removeItem('tradingStrategies');
+    localStorage.removeItem('initialCapital');
+    localStorage.removeItem('activeStrategyId');
+    localStorage.removeItem('dismissedStreakAuditUntil');
+    setIsSyncModalOpen(false);
+    alert('All records have been deleted.');
+  };
+
   const uniqueAssets = useMemo(() => {
     const assets = new Set(trades.map(t => t.asset.trim()).filter(Boolean));
     return Array.from(assets).sort();
@@ -619,6 +635,8 @@ const App: React.FC = () => {
           onRestore={handleRestore}
           strategies={strategies}
           activeStrategyId={activeStrategyId}
+          onDeleteAll={handleDeleteAllData}
+          onPromptConfirmation={promptConfirmation}
         />
       )}
       {confirmationState.isOpen && (

@@ -1,5 +1,7 @@
+
 import React, { useRef } from 'react';
 import { Trade, TradeDirection, Strategy } from '../types';
+import { TrashIcon } from './Icons';
 
 interface SyncModalProps {
   onClose: () => void;
@@ -8,9 +10,17 @@ interface SyncModalProps {
   onRestore: (file: File) => void;
   strategies: Strategy[];
   activeStrategyId: string | null;
+  onDeleteAll: () => void;
+  onPromptConfirmation: (config: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmButtonText: string;
+    confirmButtonClassName?: string;
+  }) => void;
 }
 
-const SyncModal: React.FC<SyncModalProps> = ({ onClose, trades, initialCapital, onRestore, strategies, activeStrategyId }) => {
+const SyncModal: React.FC<SyncModalProps> = ({ onClose, trades, initialCapital, onRestore, strategies, activeStrategyId, onDeleteAll, onPromptConfirmation }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportForSheet = () => {
@@ -83,6 +93,16 @@ const SyncModal: React.FC<SyncModalProps> = ({ onClose, trades, initialCapital, 
     }
   };
 
+  const handlePromptDeleteAll = () => {
+    onPromptConfirmation({
+      title: 'Delete All Records',
+      message: 'Are you sure you want to permanently delete ALL records? This action cannot be undone and will erase all trades, audits, and strategies.',
+      onConfirm: onDeleteAll,
+      confirmButtonText: 'Yes, Delete Everything',
+      confirmButtonClassName: 'bg-red hover:opacity-80',
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
       <div className="bg-surface rounded-xl border border-border shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
@@ -119,6 +139,20 @@ const SyncModal: React.FC<SyncModalProps> = ({ onClose, trades, initialCapital, 
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
               </div>
             </div>
+
+             {/* Danger Zone */}
+            <div className="border-t border-border pt-6">
+                <h3 className="font-bold text-lg text-red">Danger Zone</h3>
+                <p className="text-text_secondary text-sm my-2">These actions are permanent and cannot be undone.</p>
+                <button 
+                  onClick={handlePromptDeleteAll} 
+                  className="w-full flex items-center justify-center bg-red/10 hover:bg-red/20 text-red font-bold py-2.5 px-4 rounded-lg transition-colors duration-200"
+                >
+                  <TrashIcon />
+                  <span className="ml-2">Delete All Records</span>
+                </button>
+            </div>
+
           </div>
         </div>
 
