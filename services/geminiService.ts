@@ -1,13 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Trade, TradeSuggestion, Strategy } from '../types';
 
-// Fix: Removed vite-specific client types and environment variable handling (import.meta.env)
-// that were causing errors. Aligned API key handling with guidelines by initializing the client
-// directly with process.env.API_KEY.
+// Fix: Per coding guidelines, the GoogleGenAI client must be initialized with an API key from `process.env.API_KEY`.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const callGemini = async (prompt: string): Promise<string> => {
-    // Fix: Removed redundant check for 'ai' instance.
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -27,7 +24,6 @@ export const getLiveTradeSuggestion = async (
     image15m: string,
     image1h: string
 ): Promise<TradeSuggestion> => {
-    // Fix: Removed redundant check for 'ai' instance.
     const imagePart5m = { inlineData: { mimeType: 'image/jpeg', data: image5m } };
     const imagePart15m = { inlineData: { mimeType: 'image/jpeg', data: image15m } };
     const imagePart1h = { inlineData: { mimeType: 'image/jpeg', data: image1h } };
@@ -117,7 +113,6 @@ export const analyzeTradeWithGemini = async (trade: Trade): Promise<string> => {
 };
 
 export const auditTradesWithGemini = async (trades: Trade[], strategy?: Strategy): Promise<string> => {
-    // Fix: Removed redundant check for 'ai' instance.
     const formattedTrades = trades.map(trade => `
 ---
 Trade ID: ${trade.id}
