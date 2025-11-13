@@ -1,26 +1,13 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Trade, TradeSuggestion, Strategy } from '../types';
 
-// Fix: Use process.env.API_KEY as per @google/genai guidelines to resolve TypeScript error and align with standards.
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  // Fix: Update warning messages to refer to API_KEY.
-  console.warn("API_KEY environment variable not found. AI features will be disabled. Ensure it's set in your .env file or build settings.");
-  alert("AI features are disabled. Your API_KEY is missing from the environment configuration.");
-}
-
-// Initialize with the key, or let it be undefined if not present.
-// The subsequent calls will handle the error.
-const ai = new GoogleGenAI({ apiKey: apiKey });
-
+// Fix: Removed vite-specific client types and environment variable handling (import.meta.env)
+// that were causing errors. Aligned API key handling with guidelines by initializing the client
+// directly with process.env.API_KEY.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const callGemini = async (prompt: string): Promise<string> => {
-    if (!apiKey) {
-      // Fix: Update error message to refer to API_KEY.
-      throw new Error("API key is not configured. Please set up your API_KEY environment variable.");
-    }
+    // Fix: Removed redundant check for 'ai' instance.
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -40,10 +27,7 @@ export const getLiveTradeSuggestion = async (
     image15m: string,
     image1h: string
 ): Promise<TradeSuggestion> => {
-    if (!apiKey) {
-      // Fix: Update error message to refer to API_KEY.
-      throw new Error("API key is not configured. Please set up your API_KEY environment variable.");
-    }
+    // Fix: Removed redundant check for 'ai' instance.
     const imagePart5m = { inlineData: { mimeType: 'image/jpeg', data: image5m } };
     const imagePart15m = { inlineData: { mimeType: 'image/jpeg', data: image15m } };
     const imagePart1h = { inlineData: { mimeType: 'image/jpeg', data: image1h } };
@@ -94,7 +78,6 @@ export const getLiveTradeSuggestion = async (
     try {
         const jsonText = response.text.trim();
         const parsedJson = JSON.parse(jsonText);
-        // Basic validation for critical fields
         if ((parsedJson.direction !== 'LONG' && parsedJson.direction !== 'SHORT') || (parsedJson.orderType !== 'LIMIT' && parsedJson.orderType !== 'MARKET')) {
             throw new Error(`Invalid enum received from AI: ${parsedJson.direction}, ${parsedJson.orderType}`);
         }
@@ -134,10 +117,7 @@ export const analyzeTradeWithGemini = async (trade: Trade): Promise<string> => {
 };
 
 export const auditTradesWithGemini = async (trades: Trade[], strategy?: Strategy): Promise<string> => {
-    if (!apiKey) {
-      // Fix: Update error message to refer to API_KEY.
-      throw new Error("API key is not configured. Please set up your API_KEY environment variable.");
-    }
+    // Fix: Removed redundant check for 'ai' instance.
     const formattedTrades = trades.map(trade => `
 ---
 Trade ID: ${trade.id}
