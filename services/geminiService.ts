@@ -1,8 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Trade, TradeSuggestion, Strategy } from '../types';
 
-// Fix: Per coding guidelines, the GoogleGenAI client must be initialized with an API key from `process.env.API_KEY`.
+// Fix: Per coding guidelines, the API key must be obtained from process.env.API_KEY.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 
 const callGemini = async (prompt: string): Promise<string> => {
     try {
