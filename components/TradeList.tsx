@@ -16,7 +16,8 @@ const TradeRow: React.FC<{ trade: Trade; onEdit: (trade: Trade) => void; onDelet
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isWin = trade.pnl !== undefined && trade.pnl > 0;
+  const pnlValue = trade.pnl ?? 0;
+  const isWin = pnlValue > 0;
   
   useEffect(() => {
     if (trade.analysis) {
@@ -80,7 +81,7 @@ const TradeRow: React.FC<{ trade: Trade; onEdit: (trade: Trade) => void; onDelet
         <td className="p-4 font-bold">
             {trade.status === 'closed' ? (
                 <span className={`text-lg font-semibold ${isWin ? 'text-green' : 'text-red'}`}>
-                    {trade.pnl!.toFixed(2)}
+                    {pnlValue.toFixed(2)}
                 </span>
             ) : (
                 <span className="text-green bg-green/20 px-2 py-0.5 rounded-full text-xs font-bold">

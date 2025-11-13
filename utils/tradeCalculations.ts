@@ -22,10 +22,10 @@ export const calculateMetrics = (trades: Trade[], initialCapital: number): Dashb
     };
   }
 
-  const wins = closedTrades.filter(t => t.pnl! > 0);
-  const losses = closedTrades.filter(t => t.pnl! <= 0);
+  const wins = closedTrades.filter(t => (t.pnl ?? 0) > 0);
+  const losses = closedTrades.filter(t => (t.pnl ?? 0) <= 0);
 
-  const totalPnl = closedTrades.reduce((acc, t) => acc + t.pnl!, 0);
+  const totalPnl = closedTrades.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
   const totalWins = wins.length;
   const totalLosses = losses.length;
   const totalTrades = closedTrades.length;
@@ -33,8 +33,8 @@ export const calculateMetrics = (trades: Trade[], initialCapital: number): Dashb
   const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   const lossRate = totalTrades > 0 ? (totalLosses / totalTrades) * 100 : 0;
 
-  const totalWinPnl = wins.reduce((acc, t) => acc + t.pnl!, 0);
-  const totalLossPnl = losses.reduce((acc, t) => acc + t.pnl!, 0);
+  const totalWinPnl = wins.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+  const totalLossPnl = losses.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
 
   const averageWin = totalWins > 0 ? totalWinPnl / totalWins : 0;
   const averageLoss = totalLosses > 0 ? totalLossPnl / totalLosses : 0;
@@ -46,7 +46,7 @@ export const calculateMetrics = (trades: Trade[], initialCapital: number): Dashb
   
   let cumulativePnl = 0;
   const chartData = sortedTrades.map((t, index) => {
-    cumulativePnl += t.pnl!;
+    cumulativePnl += (t.pnl ?? 0);
     return {
       name: `Trade ${index + 1}`,
       pnl: cumulativePnl,
@@ -56,7 +56,7 @@ export const calculateMetrics = (trades: Trade[], initialCapital: number): Dashb
   
   cumulativePnl = 0; // Reset for equity calculation
   const equityChartData = sortedTrades.map((t, index) => {
-    cumulativePnl += t.pnl!;
+    cumulativePnl += (t.pnl ?? 0);
     return {
       name: `Trade ${index + 1}`,
       equity: initialCapital + cumulativePnl,
@@ -71,7 +71,7 @@ export const calculateMetrics = (trades: Trade[], initialCapital: number): Dashb
   let currentLossStreakTrades = 0;
 
   for (const trade of sortedTrades) {
-      if (trade.pnl! > 0) {
+      if ((trade.pnl ?? 0) > 0) {
           currentWinStreakTrades++;
           currentLossStreakTrades = 0;
       } else {
@@ -86,11 +86,11 @@ export const calculateMetrics = (trades: Trade[], initialCapital: number): Dashb
   const currentStreak: { type: 'win' | 'loss' | 'none'; count: number; } = { type: 'none', count: 0 };
   if (sortedTrades.length > 0) {
       const lastTrade = sortedTrades[sortedTrades.length - 1];
-      const streakType = lastTrade.pnl! > 0 ? 'win' : 'loss';
+      const streakType = (lastTrade.pnl ?? 0) > 0 ? 'win' : 'loss';
       currentStreak.type = streakType;
       
       for (let i = sortedTrades.length - 1; i >= 0; i--) {
-          const currentTradeIsWin = sortedTrades[i].pnl! > 0;
+          const currentTradeIsWin = (sortedTrades[i].pnl ?? 0) > 0;
           if ((streakType === 'win' && currentTradeIsWin) || (streakType === 'loss' && !currentTradeIsWin)) {
               currentStreak.count++;
           } else {
@@ -128,7 +128,7 @@ export const calculateCurrentLosingTradeStreak = (trades: Trade[]): number => {
   // Iterate backwards from the most recent trade
   for (let i = closedTrades.length - 1; i >= 0; i--) {
       const trade = closedTrades[i];
-      if (trade.pnl !== undefined && trade.pnl <= 0) {
+      if ((trade.pnl ?? 0) <= 0) {
           currentLosingStreak++;
       } else {
           // The streak is broken
