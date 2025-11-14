@@ -241,91 +241,99 @@ const TradeModal: React.FC<TradeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-      <div className="bg-surface rounded-xl border border-border shadow-2xl p-8 w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-6 text-text_primary">{getModalTitle()}</h2>
+      <div className="bg-surface rounded-xl border border-border shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 p-6 border-b border-border">
+          <h2 className="text-2xl font-bold text-text_primary">{getModalTitle()}</h2>
+        </div>
 
-        {isOpening && (
-            <>
-                <div className="mb-4">
-                    <label htmlFor="paste-area" className="block text-sm font-medium text-text_secondary mb-2">
-                        <strong>Quick Add:</strong> Paste comma-separated values.
-                    </label>
-                    <textarea
-                        id="paste-area"
-                        value={pasteData}
-                        onChange={handlePasteDataChange}
-                        placeholder="Date,Asset,Direction,Leverage,Entry,Exit,SL,TP,Size,Journal..."
-                        className="bg-secondary border border-transparent p-2.5 rounded-md w-full h-24 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                    />
+        {/* Scrollable Body */}
+        <div className="flex-grow overflow-y-auto p-6">
+            <form id="trade-form" onSubmit={handleSubmit} className="space-y-4">
+                {isOpening && (
+                    <>
+                        <div className="mb-4">
+                            <label htmlFor="paste-area" className="block text-sm font-medium text-text_secondary mb-2">
+                                <strong>Quick Add:</strong> Paste comma-separated values.
+                            </label>
+                            <textarea
+                                id="paste-area"
+                                value={pasteData}
+                                onChange={handlePasteDataChange}
+                                placeholder="Date,Asset,Direction,Leverage,Entry,Exit,SL,TP,Size,Journal..."
+                                className="bg-secondary border border-transparent p-2.5 rounded-md w-full h-24 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                            />
+                        </div>
+                        <div className="relative flex items-center my-6">
+                            <div className="flex-grow border-t border-border"></div>
+                            <span className="flex-shrink mx-4 text-text_tertiary text-xs uppercase tracking-wider">Or Fill Manually</span>
+                            <div className="flex-grow border-t border-border"></div>
+                        </div>
+                    </>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormInput id="trade-date" label="Date" type="date" name="date" value={formData.date} onChange={handleChange} required />
+                    <div>
+                    <label htmlFor="trade-asset" className="block text-sm font-medium text-text_secondary mb-1">Asset</label>
+                    <input id="trade-asset" type="text" list="asset-list" name="asset" placeholder="e.g., BTC/USDT" value={formData.asset} onChange={handleChange} className={`bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary ${errors.asset ? 'border-red' : 'focus:border-primary'}`} required />
+                    <datalist id="asset-list">{uniqueAssets.map(asset => <option key={asset} value={asset} />)}</datalist>
+                    {errors.asset && <p className="text-red text-xs mt-1">{errors.asset}</p>}
+                    </div>
                 </div>
-                <div className="relative flex items-center my-6">
-                    <div className="flex-grow border-t border-border"></div>
-                    <span className="flex-shrink mx-4 text-text_tertiary text-xs uppercase tracking-wider">Or Fill Manually</span>
-                    <div className="flex-grow border-t border-border"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                    <label htmlFor="trade-direction" className="block text-sm font-medium text-text_secondary mb-1">Direction</label>
+                    <select id="trade-direction" name="direction" value={formData.direction} onChange={handleChange} className="bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50">
+                        <option value={TradeDirection.Long}>Long</option>
+                        <option value={TradeDirection.Short}>Short</option>
+                    </select>
+                    </div>
+                    <div>
+                    <label htmlFor="trade-leverage" className="block text-sm font-medium text-text_secondary mb-1">Leverage</label>
+                    <input id="trade-leverage" type="text" list="leverage-list" name="leverage" placeholder="e.g., 10x" value={formData.leverage} onChange={handleChange} className="bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <datalist id="leverage-list">{allLeverages.map(lev => <option key={lev} value={lev} />)}</datalist>
+                    </div>
                 </div>
-            </>
-        )}
+                
+                <div className={`grid grid-cols-1 md:grid-cols-3 gap-4`}>
+                    <FormInput id="trade-entry" label="Entry Price" type="text" name="entryPrice" placeholder="0.00" value={formData.entryPrice} onChange={handleChange} required error={errors.entryPrice}/>
+                    <div>
+                        <label htmlFor="trade-exit" className={`block text-sm font-medium mb-1 ${isExitRequiredAfterPaste ? 'text-yellow-400' : 'text-text_secondary'}`}>Exit Price</label>
+                        <input id="trade-exit" type="text" name="exitPrice" placeholder="0.00" value={formData.exitPrice} onChange={handleChange} className={`bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary ${isExitRequiredAfterPaste ? 'ring-2 ring-yellow-500' : ''} ${errors.exitPrice ? 'border-red' : ''}`} />
+                        {errors.exitPrice && <p className="text-red text-xs mt-1">{errors.exitPrice}</p>}
+                    </div>
+                    <FormInput id="trade-size" label="Size" type="text" name="size" placeholder="0.00" value={formData.size} onChange={handleChange} required error={errors.size}/>
+                </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInput id="trade-date" label="Date" type="date" name="date" value={formData.date} onChange={handleChange} required />
-            <div>
-              <label htmlFor="trade-asset" className="block text-sm font-medium text-text_secondary mb-1">Asset</label>
-              <input id="trade-asset" type="text" list="asset-list" name="asset" placeholder="e.g., BTC/USDT" value={formData.asset} onChange={handleChange} className={`bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary ${errors.asset ? 'border-red' : 'focus:border-primary'}`} required />
-              <datalist id="asset-list">{uniqueAssets.map(asset => <option key={asset} value={asset} />)}</datalist>
-              {errors.asset && <p className="text-red text-xs mt-1">{errors.asset}</p>}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="trade-direction" className="block text-sm font-medium text-text_secondary mb-1">Direction</label>
-              <select id="trade-direction" name="direction" value={formData.direction} onChange={handleChange} className="bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50">
-                <option value={TradeDirection.Long}>Long</option>
-                <option value={TradeDirection.Short}>Short</option>
-              </select>
-            </div>
-             <div>
-              <label htmlFor="trade-leverage" className="block text-sm font-medium text-text_secondary mb-1">Leverage</label>
-              <input id="trade-leverage" type="text" list="leverage-list" name="leverage" placeholder="e.g., 10x" value={formData.leverage} onChange={handleChange} className="bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary" />
-              <datalist id="leverage-list">{allLeverages.map(lev => <option key={lev} value={lev} />)}</datalist>
-            </div>
-          </div>
-          
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-4`}>
-            <FormInput id="trade-entry" label="Entry Price" type="text" name="entryPrice" placeholder="0.00" value={formData.entryPrice} onChange={handleChange} required error={errors.entryPrice}/>
-            <div>
-                <label htmlFor="trade-exit" className={`block text-sm font-medium mb-1 ${isExitRequiredAfterPaste ? 'text-yellow-400' : 'text-text_secondary'}`}>Exit Price</label>
-                <input id="trade-exit" type="text" name="exitPrice" placeholder="0.00" value={formData.exitPrice} onChange={handleChange} className={`bg-secondary p-2.5 rounded-md w-full border border-transparent focus:outline-none focus:ring-2 focus:ring-primary ${isExitRequiredAfterPaste ? 'ring-2 ring-yellow-500' : ''} ${errors.exitPrice ? 'border-red' : ''}`} />
-                 {errors.exitPrice && <p className="text-red text-xs mt-1">{errors.exitPrice}</p>}
-            </div>
-            <FormInput id="trade-size" label="Size" type="text" name="size" placeholder="0.00" value={formData.size} onChange={handleChange} required error={errors.size}/>
-          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormInput id="trade-sl" label="Stop Loss" type="text" name="stopLoss" placeholder="0.00 (optional)" value={formData.stopLoss} onChange={handleChange} />
+                    <FormInput id="trade-tp" label="Take Profit" type="text" name="takeProfit" placeholder="0.00 (optional)" value={formData.takeProfit} onChange={handleChange} />
+                </div>
+                
+                {pnl !== null && (
+                    <div className="bg-secondary p-3 rounded-md">
+                    <p className="text-text_secondary">Calculated PnL: <span className={`font-bold ${pnl >= 0 ? 'text-green' : 'text-red'}`}>${pnl.toFixed(2)}</span></p>
+                    </div>
+                )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <FormInput id="trade-sl" label="Stop Loss" type="text" name="stopLoss" placeholder="0.00 (optional)" value={formData.stopLoss} onChange={handleChange} />
-             <FormInput id="trade-tp" label="Take Profit" type="text" name="takeProfit" placeholder="0.00 (optional)" value={formData.takeProfit} onChange={handleChange} />
-          </div>
-          
-          {pnl !== null && (
-            <div className="bg-secondary p-3 rounded-md">
-              <p className="text-text_secondary">Calculated PnL: <span className={`font-bold ${pnl >= 0 ? 'text-green' : 'text-red'}`}>${pnl.toFixed(2)}</span></p>
-            </div>
-          )}
+                <div>
+                    <label htmlFor="trade-journal" className="block text-sm font-medium text-text_secondary mb-1">Journal</label>
+                    <textarea id="trade-journal" name="journal" placeholder={isEditingOpenTrade ? 'Notes about trade management, observations...' : 'Journal entry, thoughts, strategy...'} value={formData.journal} onChange={handleChange} className="bg-secondary p-2.5 rounded-md w-full h-24 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+            </form>
+        </div>
 
-          <div>
-            <label htmlFor="trade-journal" className="block text-sm font-medium text-text_secondary mb-1">Journal</label>
-            <textarea id="trade-journal" name="journal" placeholder={isEditingOpenTrade ? 'Notes about trade management, observations...' : 'Journal entry, thoughts, strategy...'} value={formData.journal} onChange={handleChange} className="bg-secondary p-2.5 rounded-md w-full h-24 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary" />
-          </div>
-
-          <div className="flex justify-end space-x-4 pt-4">
+        {/* Footer */}
+        <div className="flex-shrink-0 p-6 border-t border-border">
+          <div className="flex justify-end space-x-4">
             <button type="button" onClick={onClose} className="bg-secondary hover:bg-secondary_hover text-text_primary font-bold py-2.5 px-5 rounded-lg transition-colors duration-200">
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary_hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-5 rounded-lg transition-colors duration-200">
+            <button type="submit" form="trade-form" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary_hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-5 rounded-lg transition-colors duration-200">
               {getSubmitButtonText()}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

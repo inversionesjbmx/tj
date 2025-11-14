@@ -1,13 +1,25 @@
+
+
+
 import React, { useState, useEffect } from 'react';
 import { Trade, TradeDirection } from '../types';
-import { LongIcon, ShortIcon, EditIcon, DeleteIcon, DownArrowIcon } from './Icons';
+import { LongIcon, ShortIcon, EditIcon, DeleteIcon, DownArrowIcon, SortIcon } from './Icons';
 import { analyzeTradeWithGemini } from '../services/geminiService';
+import PaginationControls from './PaginationControls';
 
 interface TradeListProps {
   trades: Trade[];
   onEdit: (trade: Trade) => void;
   onDelete: (id: number) => void;
   onUpdateTrade: (trade: Trade) => void;
+  onSort: (key: string) => void;
+  sortConfig: { key: string; direction: 'ascending' | 'descending' };
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  totalTradesCount: number;
+  totalFilteredCount: number;
+  itemsPerPage: number;
 }
 
 const TradeRow: React.FC<{ trade: Trade; onEdit: (trade: Trade) => void; onDelete: (id: number) => void; onUpdateTrade: (trade: Trade) => void; }> = ({ trade, onEdit, onDelete, onUpdateTrade }) => {
@@ -129,8 +141,21 @@ const TradeRow: React.FC<{ trade: Trade; onEdit: (trade: Trade) => void; onDelet
 };
 
 
-const TradeList: React.FC<TradeListProps> = ({ trades, onEdit, onDelete, onUpdateTrade }) => {
-  if (trades.length === 0) {
+const TradeList: React.FC<TradeListProps> = ({ 
+    trades, 
+    onEdit, 
+    onDelete, 
+    onUpdateTrade, 
+    onSort, 
+    sortConfig,
+    currentPage,
+    totalPages,
+    onPageChange,
+    totalTradesCount,
+    totalFilteredCount,
+    itemsPerPage
+}) => {
+  if (totalTradesCount === 0) {
     return (
         <div className="text-center py-20 bg-surface rounded-xl">
             <h3 className="text-2xl font-semibold text-text_secondary">No Trades Logged Yet</h3>
@@ -139,6 +164,28 @@ const TradeList: React.FC<TradeListProps> = ({ trades, onEdit, onDelete, onUpdat
     );
   }
 
+  if (totalFilteredCount === 0) {
+      return (
+          <div className="text-center py-20 bg-surface rounded-xl">
+              <h3 className="text-2xl font-semibold text-text_secondary">No Trades Match Filters</h3>
+              <p className="text-text_tertiary mt-2">Try adjusting or resetting your filters.</p>
+          </div>
+      );
+  }
+
+  const SortableHeader = ({ sortKey, label }: { sortKey: string; label: string; }) => (
+    <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">
+        <button
+            onClick={() => onSort(sortKey)}
+            className="flex items-center space-x-1 group"
+            aria-label={`Sort by ${label}`}
+        >
+            <span className="group-hover:text-text_primary transition-colors">{label}</span>
+            {sortConfig.key === sortKey && <SortIcon direction={sortConfig.direction} />}
+        </button>
+    </th>
+  );
+
   return (
     <div className="bg-surface rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
@@ -146,17 +193,17 @@ const TradeList: React.FC<TradeListProps> = ({ trades, onEdit, onDelete, onUpdat
           <thead className="border-b border-border">
             <tr>
               <th className="p-4 w-12"></th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">ID</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Date</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Asset</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Direction</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Leverage</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Entry</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Exit</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Size</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Stop Loss</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">Take Profit</th>
-              <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider">PnL ($)</th>
+              <SortableHeader sortKey="id" label="ID" />
+              <SortableHeader sortKey="date" label="Date" />
+              <SortableHeader sortKey="asset" label="Asset" />
+              <SortableHeader sortKey="direction" label="Direction" />
+              <SortableHeader sortKey="leverage" label="Leverage" />
+              <SortableHeader sortKey="entryPrice" label="Entry" />
+              <SortableHeader sortKey="exitPrice" label="Exit" />
+              <SortableHeader sortKey="size" label="Size" />
+              <SortableHeader sortKey="stopLoss" label="Stop Loss" />
+              <SortableHeader sortKey="takeProfit" label="Take Profit" />
+              <SortableHeader sortKey="pnl" label="PnL ($)" />
               <th className="p-4 font-semibold text-text_secondary text-xs uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
@@ -167,6 +214,13 @@ const TradeList: React.FC<TradeListProps> = ({ trades, onEdit, onDelete, onUpdat
           </tbody>
         </table>
       </div>
+      <PaginationControls 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        totalItems={totalFilteredCount}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 };

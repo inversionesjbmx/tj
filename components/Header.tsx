@@ -1,13 +1,14 @@
 import React from 'react';
-import { PlusIcon, CloudImportIcon, SyncIcon } from './Icons';
+import { PlusIcon, CloudImportIcon, SyncIcon, SettingsIcon } from './Icons';
 
 interface HeaderProps {
   onAddTrade: () => void;
   onImportFromGoogleSheet: () => void;
   onSync: () => void;
+  onOpenSettings: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onAddTrade, onImportFromGoogleSheet, onSync }) => {
+const Header: React.FC<HeaderProps> = ({ onAddTrade, onImportFromGoogleSheet, onSync, onOpenSettings }) => {
   return (
     <header className="flex flex-col md:flex-row justify-between items-center mb-8">
       <h1 className="text-4xl font-bold text-text_primary mb-4 md:mb-0">
@@ -36,6 +37,14 @@ const Header: React.FC<HeaderProps> = ({ onAddTrade, onImportFromGoogleSheet, on
           aria-label="Sync and Backup"
         >
           <SyncIcon />
+        </button>
+        <button
+          onClick={onOpenSettings}
+          className="bg-secondary hover:bg-secondary_hover text-text_primary font-semibold p-2.5 rounded-lg transition-colors duration-200"
+          title="Settings"
+          aria-label="Open Settings"
+        >
+          <SettingsIcon />
         </button>
       </div>
     </header>

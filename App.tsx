@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Trade, TradeDirection, FilterState, BackupData, Audit, Strategy } from './types';
+import { Trade, TradeDirection, FilterState, BackupData, Audit, Strategy, Settings } from './types';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import TradeList from './components/TradeList';
@@ -15,6 +15,13 @@ import AiAudit from './components/AiAudit';
 import { auditTradesWithGemini } from './services/geminiService';
 import FilteredMetricsSummary from './components/FilteredMetricsSummary';
 import LiveTrading from './components/LiveTrading';
+import SettingsModal from './components/SettingsModal';
+
+
+const DEFAULT_SETTINGS: Settings = {
+  auditRemindersEnabled: true,
+  auditMilestoneFrequency: 10,
+};
 
 
 const App: React.FC = () => {
@@ -23,6 +30,7 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGoogleSheetModalOpen, setIsGoogleSheetModalOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [initialCapital, setInitialCapital] = useState<number>(0);
   const [filters, setFilters] = useState<FilterState>({
@@ -37,6 +45,10 @@ const App: React.FC = () => {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [activeStrategyId, setActiveStrategyId] = useState<string | null>(null);
   const [dismissedStreakAuditUntil, setDismissedStreakAuditUntil] = useState<number | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'id', direction: 'descending' });
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
 
   const [confirmationState, setConfirmationState] = useState({
@@ -99,6 +111,12 @@ const App: React.FC = () => {
       if (dismissedUntil) {
         setDismissedStreakAuditUntil(parseInt(dismissedUntil, 10));
       }
+      
+      const savedSettings = localStorage.getItem('tradingJournalSettings');
+      if (savedSettings) {
+          const loadedSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) };
+          setSettings(loadedSettings);
+      }
 
 
     } catch (error) {
@@ -158,6 +176,14 @@ const App: React.FC = () => {
     }
   }, [dismissedStreakAuditUntil]);
   
+  useEffect(() => {
+      try {
+          localStorage.setItem('tradingJournalSettings', JSON.stringify(settings));
+      } catch (error) {
+          console.error("Failed to save settings to localStorage", error);
+      }
+  }, [settings]);
+  
   const closeConfirmation = useCallback(() => {
     setConfirmationState(prev => ({...prev, isOpen: false, onDismiss: undefined}));
   }, []);
@@ -205,6 +231,8 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
+    if (!settings.auditRemindersEnabled) return;
+
     const prevCount = prevTradesCountRef.current;
     const currentCount = trades.length;
     prevTradesCountRef.current = currentCount;
@@ -236,24 +264,27 @@ const App: React.FC = () => {
         });
         return;
     }
-
-    if (currentCount > 0 && currentCount % 10 === 0) {
+    
+    const milestoneFrequency = settings.auditMilestoneFrequency;
+    if (milestoneFrequency > 0 && currentCount > 0 && currentCount % milestoneFrequency === 0) {
         promptConfirmation({
             title: 'AI Audit Suggestion',
-            message: `You've just logged your ${currentCount}th trade. This is a great time to analyze your last 10 trades. Would you like to go to the AI Audit tab?`,
+            message: `You've just logged your ${currentCount}th trade. This is a great time to analyze your last ${milestoneFrequency} trades. Would you like to go to the AI Audit tab?`,
             onConfirm: () => setActiveTab('aiAudit'),
             confirmButtonText: 'Yes, Go to Audit',
             confirmButtonClassName: 'bg-primary hover:bg-primary_hover',
         });
     }
-  }, [trades, promptConfirmation, dismissedStreakAuditUntil]);
+  }, [trades, promptConfirmation, dismissedStreakAuditUntil, settings]);
 
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
+    setCurrentPage(1);
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
   
   const resetFilters = () => {
+    setCurrentPage(1);
     setFilters({
       startDate: '',
       endDate: '',
@@ -263,8 +294,17 @@ const App: React.FC = () => {
     });
   };
 
+  const handleSort = (key: string) => {
+    setSortConfig(prevConfig => {
+        const isAsc = prevConfig.key === key && prevConfig.direction === 'ascending';
+        return { key, direction: isAsc ? 'descending' : 'ascending' };
+    });
+  };
+
   const filteredTrades = useMemo(() => {
+    let filtered = [...trades];
     const idFilter = filters.tradeId.trim();
+
     if (idFilter) {
       let startId: number | undefined;
       let endId: number | undefined;
@@ -286,43 +326,92 @@ const App: React.FC = () => {
       }
 
       if (startId !== undefined && endId !== undefined) {
-        return trades.filter(trade => trade.id >= startId! && trade.id <= endId!);
+        filtered = trades.filter(trade => trade.id >= startId! && trade.id <= endId!);
+      } else {
+        filtered = []; // Return empty if format is invalid
       }
-      return []; // Return empty if format is invalid
+    } else {
+        filtered = trades.filter(trade => {
+            const { startDate, endDate, asset, pnlOutcome } = filters;
+            const tradeDate = trade.date;
+            
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setUTCHours(0, 0, 0, 0);
+                if (tradeDate < start) return false;
+            }
+            
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setUTCHours(23, 59, 59, 999);
+                if (tradeDate > end) return false;
+            }
+
+            if (asset && !trade.asset.toLowerCase().includes(asset.toLowerCase())) {
+                return false;
+            }
+
+            if (pnlOutcome === 'win' && (trade.pnl === undefined || trade.pnl <= 0)) {
+                return false;
+            }
+            
+            if (pnlOutcome === 'loss' && (trade.pnl === undefined || trade.pnl > 0)) {
+                return false;
+            }
+
+            return true;
+        });
     }
 
-    return trades.filter(trade => {
-      const { startDate, endDate, asset, pnlOutcome } = filters;
-      
-      const tradeDate = trade.date;
-      
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setUTCHours(0, 0, 0, 0);
-        if (tradeDate < start) return false;
-      }
-      
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setUTCHours(23, 59, 59, 999);
-        if (tradeDate > end) return false;
-      }
+    if (sortConfig.key) {
+        filtered.sort((a, b) => {
+            const key = sortConfig.key as keyof Trade;
+            
+            const getVal = (item: Trade, k: string) => {
+                if (k === 'pnl') return item.pnl ?? 0;
+                return item[k as keyof Trade];
+            };
 
-      if (asset && !trade.asset.toLowerCase().includes(asset.toLowerCase())) {
-        return false;
-      }
+            const aValue = getVal(a, key);
+            const bValue = getVal(b, key);
 
-      if (pnlOutcome === 'win' && (trade.pnl === undefined || trade.pnl <= 0)) {
-        return false;
-      }
-      
-      if (pnlOutcome === 'loss' && (trade.pnl === undefined || trade.pnl > 0)) {
-        return false;
-      }
+            let comparison = 0;
+            
+            if (aValue instanceof Date && bValue instanceof Date) {
+                comparison = aValue.getTime() - bValue.getTime();
+            } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+                 if (key === 'leverage') {
+                    const numA = parseInt(aValue.replace('x', '')) || 0;
+                    const numB = parseInt(bValue.replace('x', '')) || 0;
+                    comparison = numA - numB;
+                } else {
+                    comparison = aValue.localeCompare(bValue);
+                }
+            } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+                comparison = aValue - bValue;
+            } else {
+                const valA = aValue ?? (typeof aValue === 'number' ? -Infinity : '');
+                const valB = bValue ?? (typeof bValue === 'number' ? -Infinity : '');
+                if (valA < valB) comparison = -1;
+                else if (valA > valB) comparison = 1;
+            }
 
-      return true;
-    });
-  }, [trades, filters]);
+            return sortConfig.direction === 'ascending' ? comparison : -comparison;
+        });
+    }
+    
+    return filtered;
+
+  }, [trades, filters, sortConfig]);
+
+  const paginatedTrades = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredTrades.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredTrades, currentPage]);
+
+  const totalPages = useMemo(() => {
+      return Math.ceil(filteredTrades.length / ITEMS_PER_PAGE);
+  }, [filteredTrades]);
 
   const filteredTradesMetrics = useMemo(() => calculateMetrics(filteredTrades, 0), [filteredTrades]);
 
@@ -450,6 +539,11 @@ const App: React.FC = () => {
     setIsModalOpen(false);
     setEditingTrade(null);
   };
+
+  const handleSaveSettings = (newSettings: Settings) => {
+    setSettings(newSettings);
+    setIsSettingsModalOpen(false);
+  };
   
   const handleImportFromGoogleSheet = (newTrades: Omit<Trade, 'id'>[]) => {
     if (newTrades.length > 0) {
@@ -535,7 +629,9 @@ const App: React.FC = () => {
       const trimmed = t.leverage?.trim();
       return trimmed ? [trimmed] : [];
     }));
-    return Array.from(leverages).sort((a, b) => {
+    // Fix: Explicitly type the sort parameters `a` and `b` as strings to resolve
+    // type inference issues where they were being treated as `unknown`.
+    return Array.from(leverages).sort((a: string, b: string) => {
         const numA = parseInt(a);
         const numB = parseInt(b);
         if (!isNaN(numA) && !isNaN(numB)) {
@@ -554,6 +650,7 @@ const App: React.FC = () => {
           onAddTrade={() => handleOpenModal()} 
           onImportFromGoogleSheet={() => setIsGoogleSheetModalOpen(true)}
           onSync={() => setIsSyncModalOpen(true)}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         <main className="mt-8">
@@ -582,10 +679,18 @@ const App: React.FC = () => {
                 />
               )}
               <TradeList 
-                trades={filteredTrades} 
+                trades={paginatedTrades} 
                 onEdit={handleOpenModal} 
                 onDelete={handlePromptDelete}
                 onUpdateTrade={handleUpdateTrade}
+                onSort={handleSort}
+                sortConfig={sortConfig}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalTradesCount={trades.length}
+                totalFilteredCount={filteredTrades.length}
+                itemsPerPage={ITEMS_PER_PAGE}
               />
             </>
           )}
@@ -637,6 +742,14 @@ const App: React.FC = () => {
           activeStrategyId={activeStrategyId}
           onDeleteAll={handleDeleteAllData}
           onPromptConfirmation={promptConfirmation}
+        />
+      )}
+      {isSettingsModalOpen && (
+        <SettingsModal
+            isOpen={isSettingsModalOpen}
+            onClose={() => setIsSettingsModalOpen(false)}
+            onSave={handleSaveSettings}
+            currentSettings={settings}
         />
       )}
       {confirmationState.isOpen && (

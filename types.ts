@@ -26,6 +26,11 @@ export interface Strategy {
   content: string;
 }
 
+export interface Settings {
+  auditRemindersEnabled: boolean;
+  auditMilestoneFrequency: number;
+}
+
 export interface Audit {
   id: string;
   date: string;
@@ -53,6 +58,7 @@ export interface TradeSuggestion {
 export interface DashboardMetrics {
     totalPnl: number;
     winRate: number;
+
     lossRate: number;
     totalWins: number;
     totalLosses: number;
