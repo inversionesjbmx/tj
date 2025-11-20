@@ -1,13 +1,20 @@
-// Fix: Updated import path for GoogleGenAI and Type from '@google/genai' as per guidelines.
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Trade, TradeSuggestion, Strategy } from '../types';
 
-// Fix: Use `import.meta.env.VITE_API_KEY` to access the API key in a Vite project.
-// We use @ts-ignore to bypass a TypeScript error because the standard TS environment
-// doesn't recognize Vite's `import.meta.env` type without extra configuration files.
-// This is the correct and permanent implementation for this project.
+// Robust API Key retrieval for both Vite (production) and standard Node (development) environments.
+// It first checks for Vite's `VITE_API_KEY` and then falls back to `API_KEY`.
+// @ts-ignore is used to prevent TypeScript errors in environments that don't recognize `import.meta.env`.
 // @ts-ignore
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+const apiKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY;
+
+if (!apiKey) {
+    // This provides a clear error if the key isn't set in either environment.
+    throw new Error("API key not found. Please ensure VITE_API_KEY or API_KEY is set in your environment variables.");
+}
+
+const ai = new GoogleGenAI({ apiKey });
+
 
 const callGemini = async (prompt: string): Promise<string> => {
     try {

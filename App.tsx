@@ -33,6 +33,7 @@ const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [initialCapital, setInitialCapital] = useState<number>(0);
+  const [balanceAdjustment, setBalanceAdjustment] = useState<number>(0);
   const [filters, setFilters] = useState<FilterState>({
     startDate: '',
     endDate: '',
@@ -88,6 +89,11 @@ const App: React.FC = () => {
       if (savedCapital) {
         setInitialCapital(parseFloat(savedCapital));
       }
+
+      const savedAdjustment = localStorage.getItem('balanceAdjustment');
+      if (savedAdjustment) {
+        setBalanceAdjustment(parseFloat(savedAdjustment));
+      }
       
       const savedAudits = localStorage.getItem('cryptoAudits');
       if (savedAudits) {
@@ -139,6 +145,14 @@ const App: React.FC = () => {
       console.error("Failed to save initial capital to localStorage", error);
     }
   }, [initialCapital]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('balanceAdjustment', balanceAdjustment.toString());
+    } catch (error) {
+      console.error("Failed to save balance adjustment to localStorage", error);
+    }
+  }, [balanceAdjustment]);
   
   useEffect(() => {
     try {
@@ -608,11 +622,13 @@ const App: React.FC = () => {
     setAudits([]);
     setStrategies([]);
     setInitialCapital(0);
+    setBalanceAdjustment(0);
     setActiveStrategyId(null);
     localStorage.removeItem('cryptoTrades');
     localStorage.removeItem('cryptoAudits');
     localStorage.removeItem('tradingStrategies');
     localStorage.removeItem('initialCapital');
+    localStorage.removeItem('balanceAdjustment');
     localStorage.removeItem('activeStrategyId');
     localStorage.removeItem('dismissedStreakAuditUntil');
     setIsSyncModalOpen(false);
@@ -629,8 +645,6 @@ const App: React.FC = () => {
       const trimmed = t.leverage?.trim();
       return trimmed ? [trimmed] : [];
     }));
-    // Fix: Explicitly type the sort parameters `a` and `b` as strings to resolve
-    // type inference issues where they were being treated as `unknown`.
     return Array.from(leverages).sort((a: string, b: string) => {
         const numA = parseInt(a);
         const numB = parseInt(b);
@@ -659,6 +673,8 @@ const App: React.FC = () => {
               metrics={allTradesMetrics}
               initialCapital={initialCapital}
               onInitialCapitalChange={setInitialCapital}
+              balanceAdjustment={balanceAdjustment}
+              onBalanceAdjustmentChange={setBalanceAdjustment}
             />
           )}
           {activeTab === 'tradeList' && (
